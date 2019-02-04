@@ -84,6 +84,11 @@
       "defaultValue": "NewRG",
       "minLength": 1
     },
+    "newVMRegion": {
+      "type": "string",
+      "defaultValue": "uksouth",
+      "minLength": 1
+    },
     "newVMName": {
       "type": "string",
       "minLength": 1
@@ -111,14 +116,30 @@
       "type": "string",
       "defaultValue": "2016-Datacenter"
     },
-    "AVset": {
-      "type": "string"
-    },
     "skipExtensions": {
       "type": "string",
       "defaultValue": "no"
+    },
+    "DataDiskCount": {
+      "type": "int",
+      "defaultValue": 0
+    },
+    "DataDiskGB": {
+      "type": "int",
+      "defaultValue": 100
+    },
+    "StorageAccountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "StandardSSD_LRS",
+        "Premium_LRS"
+      ]
+    },
+    "AVset": {
+      "type": "string"
     }
-
 
   },
   "variables": {
@@ -128,14 +149,15 @@
     "newVMVnetID": "[resourceId(parameters('vNetRG'),'Microsoft.Network/virtualNetworks', parameters('vNetName'))]",
     "newVMSubnetRef": "[concat(variables('newVMVnetID'), '/subnets/', parameters('subnetName'))]",
     "newVMNicName": "[concat(parameters('newVMName'), '-NIC-01')]",
-    "ScriptCommand": "[concat('powershell -ExecutionPolicy unrestricted -File ', parameters('ScriptFilename'))]"
+    "ScriptCommand": "[concat('powershell -ExecutionPolicy unrestricted -File ', parameters('ScriptFilename'))]",
+    "DDCount": "[if(equals(parameters('DataDiskCount'),0),1,parameters('DataDiskCount'))]"
   },
   "resources": [
     {
       "name": "[variables('newVMNicName')]",
       "type": "Microsoft.Network/networkInterfaces",
-      "location": "[resourceGroup().location]",
-      "apiVersion": "2016-03-30",
+      "location": "[parameters('newVMRegion')]",
+      "apiVersion": "2018-04-01",
       "dependsOn": [
       ],
       "tags": {
@@ -166,8 +188,8 @@
     {
       "name": "[parameters('newVMName')]",
       "type": "Microsoft.Compute/virtualMachines",
-      "location": "[resourceGroup().location]",
-      "apiVersion": "2017-12-01",
+      "location": "[parameters('newVMRegion')]",
+      "apiVersion": "2018-04-01",
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkInterfaces', variables('newVMNicName'))]"
       ],
@@ -214,9 +236,7 @@
             "name": "[concat(parameters('newVMName'), '-OS')]",
             "caching": "ReadWrite",
             "createOption": "FromImage",
-            "managedDisk": {
-              "storageAccountType": "Standard_LRS"
-            }
+            "managedDisk": { "storageAccountType": "[parameters('StorageAccountType')]" }
           }
         },
         "networkProfile": {
@@ -235,7 +255,7 @@
       "name": "[concat(parameters('newVMName'),'/joindomain')]",
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "apiVersion": "2016-04-30-preview",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('newVMRegion')]",
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]",
         "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('newVMName'),'CustomScriptExtensions')]"
@@ -258,11 +278,11 @@
     },
 
     {
-      "condition": "[equals(parameters('skipExtensions'),'yes')]",
+      "condition": "[equals(parameters('skipExtensions'),'no')]",
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(parameters('newVMName'),'/CustomScriptExtensions')]",
       "apiVersion": "2015-06-15",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('newVMRegion')]",
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]"
       ],
@@ -284,11 +304,11 @@
 
 
     {
-      "condition": "[equals(parameters('skipExtensions'),'yes')]",
+      "condition": "[equals(parameters('skipExtensions'),'no')]",
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(parameters('newVMName'),'/BGInfo')]",
       "apiVersion": "2015-06-15",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('newVMRegion')]",
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]"
       ],
@@ -305,11 +325,11 @@
     },
 
     {
-      "condition": "[equals(parameters('skipExtensions'),'yes')]",
+      "condition": "[equals(parameters('skipExtensions'),'no')]",
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(parameters('newVMName'),'/Microsoft.Powershell.DSC')]",
       "apiVersion": "2018-04-01",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('newVMRegion')]",
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]"
       ],
@@ -353,7 +373,7 @@
               "type": "Microsoft.Network/networkInterfaces",
               "name": "[variables('newVMNicName')]",
               "apiVersion": "2018-03-01",
-              "location": "[resourceGroup().location]",
+              "location": "[parameters('newVMRegion')]",
               "properties": {
                 "ipConfigurations": [
                   {
@@ -372,7 +392,53 @@
           ]
         }
       }
+    },
+
+
+    {
+      "condition": "[greater(parameters('DataDiskCount'),0)]",
+      "type": "Microsoft.Resources/deployments",
+      "name": "CreateDataDisk",
+      "apiVersion": "2017-05-10",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": [
+            {
+              "type": "Microsoft.Compute/virtualMachines",
+              "name": "[parameters('newVMName')]",
+              "apiVersion": "2018-04-01",
+              "location": "[parameters('newVMRegion')]",
+              "properties": {
+                "storageProfile": {
+                  "copy": [
+                    {
+                      "name": "dataDisks",
+                      "count": "[variables('DDCount')]",
+                      "input": {
+                        "diskSizeGB": "[parameters('DataDiskGB')]",
+                        "lun": "[copyIndex('dataDisks')]",
+                        "name": "[concat(parameters('newVMName'), '-datadisk-',copyIndex('dataDisks'))]",
+                        "createOption": "Empty",
+                        "managedDisk": { "storageAccountType": "[parameters('StorageAccountType')]" }
+                      }
+                    }
+                  ]
+
+
+                }
+              }
+            }
+          ]
+        }
+      }
     }
+
 
   ],
   "outputs": {

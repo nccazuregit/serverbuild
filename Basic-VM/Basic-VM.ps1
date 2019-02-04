@@ -9,7 +9,7 @@
 #############################################################################################################################################################################
 
 ### Change the variables below as you see fit
-$vmNames =  @("TestDJrf22") # e.g. @("Server1","Server2","Server3") !!!!!! REMEMBER THE 15 CHARACTER LIMIT FOR SERVER NAMES !!!!!!
+$vmNames =  @("deleteme1","deleteme2") # e.g. @("Server1","Server2","Server3") !!!!!! REMEMBER THE 15 CHARACTER LIMIT FOR SERVER NAMES !!!!!!
 $resourceGroupName = ''
 $vmSize = '' 
 $vmOSVer = '2016-Datacenter'
@@ -26,20 +26,24 @@ $TagDepartmentOwner = "ICT"
 $TagEnvironment = "DEV"
 $TagFullVMBackup = "Yes"
 $TagRoleFunction = "Test domain join using my HA account"
-$debug = "Yes"
+#$debug = "Yes"
 
 
 #Do not change the paths below unless you move the files also.
 
-$template = 'H:\_Projects\_Cloud\_ARM_Templates\NCC vm build templates\Master Scripts\Basic-VM\v7\Basic-VM.json'
+$template = 'H:\_Projects\_Cloud\_ARM_Templates\NCC vm build templates\Dev Scripts\_Basic-VM\Basic-VM.json'
 
 $context =Connect-AzureRmAccount # connect to azure with your credentials
 #Specify which subscription to use
+
 $AzureInfo = (Get-AzureRmSubscription -ErrorAction Stop | Out-GridView -Title 'Select a Subscription/Tenant ID for deployment...' -PassThru)
 Select-AzureRmSubscription -SubscriptionId $AzureInfo.SubscriptionId -TenantId $AzureInfo.TenantId -ErrorAction Stop| Out-Null
 
-$objSA = (get-azurermstorageaccount | where resourcegroupname -Like *diag* -ErrorAction Stop | Out-GridView -Title 'Select the storage account to be used for Boot Diagnostics' -PassThru)
+$objRegion = (Get-AzureRmLocation -ErrorAction Stop | Out-GridView -Title 'Select the region where the VM will be deployed to...' -PassThru)
+$objSA = (get-azurermstorageaccount | where resourcegroupname -Like *diag* | where location -EQ $objRegion.Location -ErrorAction Stop | Out-GridView -Title 'Select the storage account to be used for Boot Diagnostics' -PassThru)
 $sauri =$objSA.PrimaryEndpoints.Blob
+
+
 
 
 #Select desired RG name from list
@@ -51,13 +55,13 @@ if (!$resourceGroupName) {
 
 #Select desired VM size from list
 if (!$vmSize) {
-    $objVM = (Get-AzureRmVmSize -location $objRG.Location -ErrorAction Stop | Out-GridView -Title 'Select a VM Size for deployment...' -PassThru)
+    $objVM = (Get-AzureRmVmSize -location $objRegion.Location -ErrorAction Stop | Out-GridView -Title 'Select a VM Size for deployment...' -PassThru)
     $vmSize = $objVM.Name
 }
 
 #Get Vnet + Subnet
 if (!$vNetRG) {
-    $objvNetRG = (get-azurermvirtualnetwork -ErrorAction Stop | Out-GridView -Title 'Select the VNET for deployment...' -PassThru)
+    $objvNetRG = (get-azurermvirtualnetwork | where location -EQ $objRegion.Location -ErrorAction Stop | Out-GridView -Title 'Select the VNET for deployment...' -PassThru)
     $vNetRG = $objvNetRG.ResourceGroupName
     $VnetName = $objvNetRG.Name
     $ObjSubnet =($objvNetRG.Subnets  | Out-GridView -Title 'Select a Subnet...' -PassThru) 
@@ -83,6 +87,7 @@ foreach ($objVM in $vmNames)
 
     $additionalParameters = New-Object -TypeName Hashtable
     $additionalParameters['newVMName'] = $objVM
+    $additionalParameters['newVMRegion'] = $objRegion.Location
     $additionalParameters['TagDeployedBy'] = $engSignature
     $additionalParameters['TagBusinessService'] = $TagBusinessService
     $additionalParameters['TagCostCentre'] = $TagCostCentre
@@ -106,9 +111,8 @@ foreach ($objVM in $vmNames)
     $additionalParameters['ScriptSAName'] = (Get-AzureKeyVaultSecret -vaultName "kv-automation-dev-01" -Name "SophosScriptSAName").SecretValueText
     $additionalParameters['ScriptSAKey'] = (Get-AzureKeyVaultSecret -vaultName "kv-automation-dev-01" -Name "SophosScriptSAKey").SecretValueText
     $additionalParameters['DataDiskCount'] = 1
-    $additionalParameters['DataDiskGB'] = 10
-    $additionalParameters['StorageAccountType'] = "Premium_LRS"
-  #  $additionalParameters['skipExtensions'] = $debug
+    $additionalParameters['DataDiskGB'] = 100
+    #$additionalParameters['skipExtensions'] = "no"
 
     
     New-AzureRmResourceGroupDeployment `

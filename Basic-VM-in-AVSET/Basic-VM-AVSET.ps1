@@ -9,7 +9,8 @@
 #############################################################################################################################################################################
 
 ### Change the variables below as you see fit
-$vmNames =  @("SRV1","SRV2") # e.g. @("Server1","Server2","Server3") !!!!!! REMEMBER THE 15 CHARACTER LIMIT FOR SERVER NAMES !!!!!!
+$vmNames =  @("Deteteme1") # e.g. @("Server1","Server2","Server3") !!!!!! REMEMBER THE 15 CHARACTER LIMIT FOR SERVER NAMES !!!!!!
+$avsetName = ''
 $resourceGroupName = ''
 $vmSize = '' 
 $vmOSVer = '2016-Datacenter'
@@ -19,7 +20,7 @@ $SubnetName = '' #
 $DomaintoJoin = "" # e.g 'nccadmin.ad.nottscc.gov.uk' leave this value empty to have server join a workgroup
 $domainUser = "rf22-adm@nccadmin.ad.nottscc.gov.uk" 
 $domainUserPWD = convertto-securestring "P@ssW0rD!" -asplaintext -force # do not amend this
-$TagApplicationOwner = "ICT Systems"
+$TagApplicationOwner = "rf22"
 $TagBusinessService =""
 $TagCostCentre = ""
 $TagDepartmentOwner = "ICT"
@@ -27,20 +28,18 @@ $TagEnvironment = "DEV"
 $TagFullVMBackup = "Yes"
 $TagRoleFunction = "ADDS"
 
-
-
 #Do not change the paths below unless you move the files also.
-
-$template = 'H:\_Projects\_Cloud\_ARM_Templates\NCC vm build templates\Master Scripts\Basic-VM-in-AVSET\V1\Basic-VM-AVSET.json'
+$template = 'H:\_Projects\_Cloud\_ARM_Templates\NCC vm build templates\Dev Scripts\_Basic-VM-AVSET\Basic-VM-AVSET.json'
 
 $context =Connect-AzureRmAccount # connect to azure with your credentials
 #Specify which subscription to use
+
 $AzureInfo = (Get-AzureRmSubscription -ErrorAction Stop | Out-GridView -Title 'Select a Subscription/Tenant ID for deployment...' -PassThru)
 Select-AzureRmSubscription -SubscriptionId $AzureInfo.SubscriptionId -TenantId $AzureInfo.TenantId -ErrorAction Stop| Out-Null
 
-$objSA = (get-azurermstorageaccount | where resourcegroupname -Like *diag* -ErrorAction Stop | Out-GridView -Title 'Select the storage account to be used for Boot Diagnostics' -PassThru)
+$objRegion = (Get-AzureRmLocation -ErrorAction Stop | Out-GridView -Title 'Select the region where the VM will be deployed to...' -PassThru)
+$objSA = (get-azurermstorageaccount | where resourcegroupname -Like *diag* | where location -EQ $objRegion.Location -ErrorAction Stop | Out-GridView -Title 'Select the storage account to be used for Boot Diagnostics' -PassThru)
 $sauri =$objSA.PrimaryEndpoints.Blob
-
 
 #Select desired RG name from list
 if (!$resourceGroupName) {
@@ -48,22 +47,20 @@ if (!$resourceGroupName) {
     $resourceGroupName = $objRG.ResourceGroupName
 }
 
-#Select desired RG name from list
 if (!$avsetName) {
     $objAVSET = (Get-AzureRmAvailabilitySet -ResourceGroupName $objRG.ResourceGroupName -ErrorAction Stop | Out-GridView -Title 'Select a resource group for deployment...' -PassThru)
     $avsetName = $objAVSET.name
 }
 
-
 #Select desired VM size from list
 if (!$vmSize) {
-    $objVM = (Get-AzureRmVmSize -location $objRG.Location -ErrorAction Stop | Out-GridView -Title 'Select a VM Size for deployment...' -PassThru)
+    $objVM = (Get-AzureRmVmSize -location $objRegion.Location -ErrorAction Stop | Out-GridView -Title 'Select a VM Size for deployment...' -PassThru)
     $vmSize = $objVM.Name
 }
 
 #Get Vnet + Subnet
 if (!$vNetRG) {
-    $objvNetRG = (get-azurermvirtualnetwork -ErrorAction Stop | Out-GridView -Title 'Select the VNET for deployment...' -PassThru)
+    $objvNetRG = (get-azurermvirtualnetwork | where location -EQ $objRegion.Location -ErrorAction Stop | Out-GridView -Title 'Select the VNET for deployment...' -PassThru)
     $vNetRG = $objvNetRG.ResourceGroupName
     $VnetName = $objvNetRG.Name
     $ObjSubnet =($objvNetRG.Subnets  | Out-GridView -Title 'Select a Subnet...' -PassThru) 
@@ -78,8 +75,6 @@ if ($DomaintoJoin) {
     $domainUserPWD = Read-Host -Prompt 'Input Password' -AsSecureString # Get password of account used to join domain
 }
 
-
-
 #Set engineer tag
 $engSignature = $context.Context.Account.Id
 
@@ -89,6 +84,7 @@ foreach ($objVM in $vmNames)
 
     $additionalParameters = New-Object -TypeName Hashtable
     $additionalParameters['newVMName'] = $objVM
+    $additionalParameters['newVMRegion'] = $objRegion.Location
     $additionalParameters['TagDeployedBy'] = $engSignature
     $additionalParameters['TagBusinessService'] = $TagBusinessService
     $additionalParameters['TagCostCentre'] = $TagCostCentre
@@ -112,6 +108,8 @@ foreach ($objVM in $vmNames)
     $additionalParameters['ScriptSAName'] = (Get-AzureKeyVaultSecret -vaultName "kv-automation-dev-01" -Name "SophosScriptSAName").SecretValueText
     $additionalParameters['ScriptSAKey'] = (Get-AzureKeyVaultSecret -vaultName "kv-automation-dev-01" -Name "SophosScriptSAKey").SecretValueText
     $additionalParameters['AVset'] = $avsetName
+    $additionalParameters['DataDiskCount'] = 1
+    $additionalParameters['DataDiskGB'] = 100
     #$additionalParameters['skipExtensions'] = "yes"
 
     
