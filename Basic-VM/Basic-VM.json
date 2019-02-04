@@ -84,6 +84,11 @@
       "defaultValue": "NewRG",
       "minLength": 1
     },
+    "newVMRegion": {
+      "type": "string",
+      "defaultValue": "uksouth",
+      "minLength": 1
+    },
     "newVMName": {
       "type": "string",
       "minLength": 1
@@ -148,7 +153,7 @@
     {
       "name": "[variables('newVMNicName')]",
       "type": "Microsoft.Network/networkInterfaces",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('newVMRegion')]",
       "apiVersion": "2018-04-01",
       "dependsOn": [
       ],
@@ -180,7 +185,7 @@
     {
       "name": "[parameters('newVMName')]",
       "type": "Microsoft.Compute/virtualMachines",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('newVMRegion')]",
       "apiVersion": "2018-04-01",
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkInterfaces', variables('newVMNicName'))]"
@@ -244,7 +249,7 @@
       "name": "[concat(parameters('newVMName'),'/joindomain')]",
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "apiVersion": "2016-04-30-preview",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('newVMRegion')]",
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]",
         "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('newVMName'),'CustomScriptExtensions')]"
@@ -271,7 +276,7 @@
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(parameters('newVMName'),'/CustomScriptExtensions')]",
       "apiVersion": "2015-06-15",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('newVMRegion')]",
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]"
       ],
@@ -297,7 +302,7 @@
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(parameters('newVMName'),'/BGInfo')]",
       "apiVersion": "2015-06-15",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('newVMRegion')]",
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]"
       ],
@@ -318,7 +323,7 @@
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(parameters('newVMName'),'/Microsoft.Powershell.DSC')]",
       "apiVersion": "2018-04-01",
-      "location": "[resourceGroup().location]",
+      "location": "[parameters('newVMRegion')]",
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]"
       ],
@@ -362,7 +367,7 @@
               "type": "Microsoft.Network/networkInterfaces",
               "name": "[variables('newVMNicName')]",
               "apiVersion": "2018-03-01",
-              "location": "[resourceGroup().location]",
+              "location": "[parameters('newVMRegion')]",
               "properties": {
                 "ipConfigurations": [
                   {
@@ -402,7 +407,7 @@
               "type": "Microsoft.Compute/virtualMachines",
               "name": "[parameters('newVMName')]",
               "apiVersion": "2018-04-01",
-              "location": "[resourceGroup().location]",
+              "location": "[parameters('newVMRegion')]",
               "properties": {
                 "storageProfile": {
                   "copy": [
