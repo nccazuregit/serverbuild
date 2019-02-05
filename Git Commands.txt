@@ -1,0 +1,68 @@
+# Create new GIT repository 
+git init [New Repository name]	$ git init DemoApp
+
+# Change directory 
+cd [New Repository name]/ 		e.g.  $ cd DemoApp/
+
+# get current status
+git status
+
+# add single file to track - 
+git add [filename]			e.g. git add readme.md
+
+# commit staged file to database
+git commit -m ["your message here"]	e.g. git commit -m "Initial commit"
+
+# add all untracked files to track - 
+git add .
+
+
+
+# connect local repo to GITHUB
+git remote add origin [HTTPS:address]		e.g. git remote add origin https://github.com/richfrankrepo/firstrepo.git
+
+# push local repo to remote repo
+ git push -u origin master
+
+#View status of remote repos
+git remote -v
+
+
+# Clone from a remote REPO
+git clone [https or ssh]		e.g.	git clone https://github.com/richfrankrepo/symmetrical-pancake.git * or *git clone git@github.com:richfrankrepo/symmetrical-pancake.git
+
+# Push local master branch to origin e.g. github - run 'git status' afterwards to confirm origin and master are in sync
+git push origin master 
+
+# Get changes from origin to local master using git fetch
+git fetch
+
+# Get changes from origin and attempt to merge
+git pull
+
+
+**************************************** Working with branches *************************************
+
+# Create new branch
+git branch [branchname]
+
+
+# Create new branch and switch to it automatically
+git checkout -b [new branch name i.e. "add-installation"]
+
+# Push new local branch to remote branch
+git push -u origin [branch name i.e "add-installation"]
+
+# switch to master
+git checkout master
+
+Mergin upstream repo into your fork
+https://help.github.com/articles/merging-an-upstream-repository-into-your-fork/
+
+
+**************************************** Working with Tags *************************************
+
+Git Log
+
+git log --oneline --graph --decorate --all
+
