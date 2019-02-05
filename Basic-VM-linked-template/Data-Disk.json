@@ -1,0 +1,84 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "newVMName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "DataDiskCount": {
+      "type": "int",
+      "defaultValue": 0
+    },
+    "DataDiskGB": {
+      "type": "int",
+      "defaultValue": 100
+    },
+    "StorageAccountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "StandardSSD_LRS",
+        "Premium_LRS"
+      ]
+    },
+    "newVMRegion": {
+      "type": "string",
+      "defaultValue": "uksouth",
+      "minLength": 1
+    }
+
+  },
+  "variables": {
+    "DDCount": "[if(equals(parameters('DataDiskCount'),0),1,parameters('DataDiskCount'))]"
+  },
+  "resources": [
+    {
+      "condition": "[greater(parameters('DataDiskCount'),0)]",
+      "type": "Microsoft.Resources/deployments",
+      "name": "CreateDataDisk",
+      "apiVersion": "2017-05-10",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": [
+            {
+              "type": "Microsoft.Compute/virtualMachines",
+              "name": "[parameters('newVMName')]",
+              "apiVersion": "2018-04-01",
+              "location": "[parameters('newVMRegion')]",
+              "properties": {
+                "storageProfile": {
+                  "copy": [
+                    {
+                      "name": "dataDisks",
+                      "count": "[variables('DDCount')]",
+                      "input": {
+                        "diskSizeGB": "[parameters('DataDiskGB')]",
+                        "lun": "[copyIndex('dataDisks')]",
+                        "name": "[concat(parameters('newVMName'), '-datadisk-',copyIndex('dataDisks'))]",
+                        "createOption": "Empty",
+                        "managedDisk": { "storageAccountType": "[parameters('StorageAccountType')]" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+
+
+  ],
+  "outputs": {
+    
+  }
+}
