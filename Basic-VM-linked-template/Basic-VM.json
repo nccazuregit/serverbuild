@@ -359,31 +359,14 @@
       ],
       "properties": {
         "mode": "Incremental",
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "resources": [
-            {
-              "type": "Microsoft.Network/networkInterfaces",
-              "name": "[variables('newVMNicName')]",
-              "apiVersion": "2018-03-01",
-              "location": "[parameters('newVMRegion')]",
-              "properties": {
-                "ipConfigurations": [
-                  {
-                    "name": "ipconfig1",
-                    "properties": {
-                      "privateIPAllocationMethod": "Static",
-                      "privateIPAddress": "[reference(concat('Microsoft.Network/networkInterfaces/', variables('newVMNicName'))).ipConfigurations[0].properties.privateIPAddress]",
-                      "subnet": {
-                        "id": "[variables('newVMSubnetRef')]"
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          ]
+        "templateLink": {
+          "uri": "https://raw.githubusercontent.com/nccazuregit/serverbuild/master/Basic-VM-linked-template/Static-IP.json",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "newVMNicName": "[variables('newVMNicName')]",
+          "newVMRegion": "[parameters('newVMRegion')]",
+          "newVMSubnetRef": "[variables('newVMSubnetRef')]"
         }
       }
     },

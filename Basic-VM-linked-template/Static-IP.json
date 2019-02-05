@@ -5,19 +5,18 @@
     "newVMNicName": {
       "type": "string"
     },
-    "newVMName": {
-      "type": "string",
-      "minLength": 1
-    },
     "newVMRegion": {
       "type": "string",
       "defaultValue": "uksouth",
       "minLength": 1
+    },
+    "newVMSubnetRef": {
+      "type": "string"
     }
 
   },
   "variables": {
-    "newVMNicName": "[concat(parameters('newVMName'), '-NIC-01')]"
+
   },
   "resources": [
     {
@@ -32,7 +31,7 @@
           "resources": [
             {
               "type": "Microsoft.Network/networkInterfaces",
-              "name": "[variables('newVMNicName')]",
+              "name": "[parameters('newVMNicName')]",
               "apiVersion": "2018-03-01",
               "location": "[parameters('newVMRegion')]",
               "properties": {
@@ -43,7 +42,7 @@
                       "privateIPAllocationMethod": "Static",
                       "privateIPAddress": "[reference(concat('Microsoft.Network/networkInterfaces/', parameters('newVMNicName'))).ipConfigurations[0].properties.privateIPAddress]",
                       "subnet": {
-                        "id": "[variables('newVMSubnetRef')]"
+                        "id": "[parameters('newVMSubnetRef')]"
                       }
                     }
                   }
