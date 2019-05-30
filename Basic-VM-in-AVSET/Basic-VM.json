@@ -1,0 +1,449 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "TagDeployedBy": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "TagApplicationOwner": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "TagBusinessService": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "TagCostCentre": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "TagDepartmentOwner": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "TagEnvironment": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "TagFullVMBackup": {
+      "type": "string",
+      "defaultValue": "Yes"
+    },
+    "TagRoleFunction": {
+      "type": "string",
+      "defaultValue": ""
+    },
+
+    "ScriptFileURI": {
+      "type": "string"
+    },
+    "ScriptFilename": {
+      "type": "string"
+    },
+    "ScriptSAName": {
+      "type": "string"
+    },
+    "ScriptSAKey": {
+      "type": "string"
+    },
+    "vNetName": {
+      "type": "string",
+      "defaultValue": "VN-PRD-UKS-01",
+      "minLength": 1
+    },
+    "tagSRNumber": {
+      "type": "string",
+      "defaultValue": "None Supplied"
+    },
+    "dscNodeConfig": {
+      "type": "string",
+      "defaultValue": "Default2016.localhost"
+    },
+    "dscRegURL": {
+      "type": "string"
+    },
+    "dscRegKey": {
+      "type": "string"
+    },
+    "diagSAURI": {
+      "type": "string"
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_DS2_v2",
+      "minLength": 1
+    },
+    "subnetName": {
+      "type": "string",
+      "defaultValue": "SN-VN-PRD-UKS-01-APP-01",
+      "minLength": 1
+    },
+    "vNetRG": {
+      "type": "string",
+      "defaultValue": "NewRG",
+      "minLength": 1
+    },
+    "newVMRegion": {
+      "type": "string",
+      "defaultValue": "uksouth",
+      "minLength": 1
+    },
+    "newVMName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "newVMDomain": {
+      "type": "string",
+      "defaultValue": "",
+      "allowedValues": [
+        "",
+        "nccadmin.ad.nottscc.gov.uk"
+      ]
+    },
+    "DomainJoinUPN": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "DomainUserPWD": {
+      "type": "securestring",
+      "defaultValue": ""
+    },
+    "newVMAdminUserName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "newVMAdminPassword": {
+      "type": "securestring"
+    },
+    "newVMWindowsOSVersion": {
+      "type": "string",
+      "defaultValue": "2016-Datacenter"
+    },
+    "skipExtensions": {
+      "type": "string",
+      "defaultValue": "no"
+    },
+    "DataDiskCount": {
+      "type": "int",
+      "defaultValue": 0
+    },
+    "DataDiskGB": {
+      "type": "int",
+      "defaultValue": 100
+    },
+    "StorageAccountType": {
+      "type": "string",
+      "defaultValue": "Premium_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "StandardSSD_LRS",
+        "Premium_LRS"
+      ]
+    }
+
+  },
+  "variables": {
+    "newVMImagePublisher": "MicrosoftWindowsServer",
+    "newVMImageOffer": "WindowsServer",
+    "newVMVmSize": "Standard_F2s_v2",
+    "newVMVnetID": "[resourceId(parameters('vNetRG'),'Microsoft.Network/virtualNetworks', parameters('vNetName'))]",
+    "newVMSubnetRef": "[concat(variables('newVMVnetID'), '/subnets/', parameters('subnetName'))]",
+    "newVMNicName": "[concat(parameters('newVMName'), '-NIC-01')]",
+    "ScriptCommand": "[concat('powershell -ExecutionPolicy unrestricted -File ', parameters('ScriptFilename'))]",
+    "DDCount": "[if(equals(parameters('DataDiskCount'),0),1,parameters('DataDiskCount'))]"
+  },
+  "resources": [
+    {
+      "name": "[variables('newVMNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[parameters('newVMRegion')]",
+      "apiVersion": "2018-04-01",
+      "dependsOn": [
+      ],
+      "tags": {
+        "Application Owner": "[parameters('TagApplicationOwner')]",
+        "Business Service": "[parameters('TagBusinessService')]",
+        "Cost Centre": "[parameters('TagCostCentre')]",
+        "Department Owner": "[parameters('TagDepartmentOwner')]",
+        "Environment": "[parameters('TagEnvironment')]",
+        "Full VM Backup": "[parameters('TagFullVMBackup')]",
+        "Role Function": "[parameters('TagRoleFunction')]",
+        "Deployed By": "[parameters('TagDeployedBy')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[variables('newVMSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+
+
+    {
+      "name": "[parameters('newVMName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[parameters('newVMRegion')]",
+      "apiVersion": "2018-04-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('newVMNicName'))]"
+      ],
+      "tags": {
+        "Application Owner": "[parameters('TagApplicationOwner')]",
+        "Business Service": "[parameters('TagBusinessService')]",
+        "Cost Centre": "[parameters('TagCostCentre')]",
+        "Department Owner": "[parameters('TagDepartmentOwner')]",
+        "Environment": "[parameters('TagEnvironment')]",
+        "Full VM Backup": "[parameters('TagFullVMBackup')]",
+        "Role Function": "[parameters('TagRoleFunction')]",
+        "Deployed By": "[parameters('TagDeployedBy')]"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('newVMName')]",
+          "adminUsername": "[parameters('newVMAdminUsername')]",
+          "adminPassword": "[parameters('newVMAdminPassword')]",
+          "windowsConfiguration": {
+            "timeZone": "GMT Standard Time"
+          }
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true,
+            "storageUri": "[parameters('diagSAURI')]"
+          }
+        },
+        "licenseType": "Windows_Server",
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('newVMImagePublisher')]",
+            "offer": "[variables('newVMImageOffer')]",
+            "sku": "[parameters('newVMWindowsOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[concat(parameters('newVMName'), '-OS')]",
+            "caching": "ReadWrite",
+            "createOption": "FromImage",
+            "managedDisk": { "storageAccountType": "[parameters('StorageAccountType')]" }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('newVMNicName'))]"
+            }
+          ]
+        }
+      }
+    },
+
+
+    {
+      "condition": "[greater(length(parameters('newVMDomain')), 0)]",
+      "name": "[concat(parameters('newVMName'),'/joindomain')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "apiVersion": "2016-04-30-preview",
+      "location": "[parameters('newVMRegion')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]",
+        "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('newVMName'),'CustomScriptExtensions')]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "JsonADDomainExtension",
+        "typeHandlerVersion": "1.3",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "Name": "[parameters('newVMDomain')]",
+          "User": "[parameters('DomainJoinUPN')]",
+          "OUPath": "OU=Domain Servers,DC=nccadmin,DC=ad,DC=nottscc,DC=gov,DC=uk",
+          "Restart": "true",
+          "Options": 3
+        },
+        "protectedSettings": {
+          "Password": "[parameters('DomainUserPWD')]"
+        }
+      }
+    },
+
+    {
+      "condition": "[equals(parameters('skipExtensions'),'no')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('newVMName'),'/CustomScriptExtensions')]",
+      "apiVersion": "2015-06-15",
+      "location": "[parameters('newVMRegion')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "CustomScriptExtension",
+        "typeHandlerVersion": "1.7",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "fileUris": [ "[parameters('ScriptFileURI')]" ],
+          "commandToExecute": "[variables('ScriptCommand')]"
+        },
+        "protectedSettings": {
+          "storageAccountName": "[parameters('ScriptSAName')]",
+          "storageAccountKey": "[parameters('ScriptSAKey')]"
+        }
+      }
+    },
+
+
+    {
+      "condition": "[equals(parameters('skipExtensions'),'no')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('newVMName'),'/BGInfo')]",
+      "apiVersion": "2015-06-15",
+      "location": "[parameters('newVMRegion')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "BGInfo",
+        "typeHandlerVersion": "2.1",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "Properties": [
+          ]
+        }
+      }
+    },
+
+    {
+      "condition": "[equals(parameters('skipExtensions'),'no')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('newVMName'),'/Microsoft.Powershell.DSC')]",
+      "apiVersion": "2018-04-01",
+      "location": "[parameters('newVMRegion')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Powershell",
+        "type": "DSC",
+        "typeHandlerVersion": "2.77",
+        "autoUpgradeMinorVersion": true,
+        "settings": {
+          "configurationArguments": {
+            "RegistrationUrl": "[parameters('dscRegURL')]",
+            "NodeConfigurationName": "[parameters('dscNodeConfig')]"
+          }
+        },
+        "protectedSettings": {
+          "configurationArguments": {
+            "RegistrationKey": {
+              "userName": "NOT_USED",
+              "Password": "[parameters('dscRegKey')]"
+            }
+          }
+        }
+
+      }
+    },
+
+    {
+      "type": "Microsoft.Resources/deployments",
+      "name": "StaticNic",
+      "apiVersion": "2017-05-10",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('newVMNicName'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": [
+            {
+              "type": "Microsoft.Network/networkInterfaces",
+              "name": "[variables('newVMNicName')]",
+              "apiVersion": "2018-03-01",
+              "location": "[parameters('newVMRegion')]",
+              "properties": {
+                "ipConfigurations": [
+                  {
+                    "name": "ipconfig1",
+                    "properties": {
+                      "privateIPAllocationMethod": "Static",
+                      "privateIPAddress": "[reference(concat('Microsoft.Network/networkInterfaces/', variables('newVMNicName'))).ipConfigurations[0].properties.privateIPAddress]",
+                      "subnet": {
+                        "id": "[variables('newVMSubnetRef')]"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+
+
+    {
+      "condition": "[greater(parameters('DataDiskCount'),0)]",
+      "type": "Microsoft.Resources/deployments",
+      "name": "CreateDataDisk",
+      "apiVersion": "2017-05-10",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('newVMName'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": [
+            {
+              "type": "Microsoft.Compute/virtualMachines",
+              "name": "[parameters('newVMName')]",
+              "apiVersion": "2018-04-01",
+              "location": "[parameters('newVMRegion')]",
+              "properties": {
+                "storageProfile": {
+                  "copy": [
+                    {
+                      "name": "dataDisks",
+                      "count": "[variables('DDCount')]",
+                      "input": {
+                        "diskSizeGB": "[parameters('DataDiskGB')]",
+                        "lun": "[copyIndex('dataDisks')]",
+                        "name": "[concat(parameters('newVMName'), '-datadisk-',copyIndex('dataDisks'))]",
+                        "createOption": "Empty",
+                        "managedDisk": { "storageAccountType": "[parameters('StorageAccountType')]" }
+                      }
+                    }
+                  ]
+
+
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+
+
+  ],
+  "outputs": {
+    "Static_IP_address": {
+      "type": "string",
+      "value": "[reference(concat('Microsoft.Network/networkInterfaces/', variables('newVMNicName'))).ipConfigurations[0].properties.privateIPAddress]"
+    }
+  }
+}
