@@ -95,7 +95,11 @@
     },
     "newVMDomain": {
       "type": "string",
-      "defaultValue": ""
+      "defaultValue": "",
+      "allowedValues": [
+        "",
+        "nccadmin.ad.nottscc.gov.uk"
+      ]
     },
     "DomainJoinUPN": {
       "type": "string",
@@ -262,6 +266,7 @@
         "settings": {
           "Name": "[parameters('newVMDomain')]",
           "User": "[parameters('DomainJoinUPN')]",
+          "OUPath": "OU=Domain Servers,DC=nccadmin,DC=ad,DC=nottscc,DC=gov,DC=uk",
           "Restart": "true",
           "Options": 3
         },
